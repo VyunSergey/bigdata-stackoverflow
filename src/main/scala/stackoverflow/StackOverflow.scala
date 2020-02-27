@@ -181,10 +181,11 @@ class StackOverflow extends StackOverflowInterface with Serializable {
   //  Kmeans method:
 
   /** Main kmeans computation */
-  @tailrec final def kmeans(means: Array[(Int, Int)],
-                            vectors: RDD[(Int, Int)],
-                            iter: Int = 1,
-                            debug: Boolean = false): Array[(Int, Int)] = {
+  @tailrec
+  final def kmeans(means: Array[(Int, Int)],
+                   vectors: RDD[(Int, Int)],
+                   iter: Int = 1,
+                   debug: Boolean = false): Array[(Int, Int)] = {
     val newAverages =
       vectors
       .map(v => (findClosest(v, means), v))
@@ -245,16 +246,18 @@ class StackOverflow extends StackOverflowInterface with Serializable {
 
   /** Return the closest point */
   def findClosest(p: (Int, Int), centers: Array[(Int, Int)]): Int = {
-    var bestIndex = 0
-    var closest = Double.PositiveInfinity
-    for (i <- centers.indices) {
-      val tempDist = euclideanDistance(p, centers(i))
-      if (tempDist < closest) {
-        closest = tempDist
-        bestIndex = i
+    @tailrec
+    def findClosestIndex(p: (Int, Int), centers: Array[(Int, Int)],
+                         dist: Double, index: Int, bestIndex: Int): Int = {
+      if (centers.isEmpty) {
+        bestIndex
+      } else {
+        val tempDist = euclideanDistance(p, centers.head)
+        val (newDist, newIndex) = if (tempDist < dist) (tempDist, index) else (dist, bestIndex)
+        findClosestIndex(p, centers.tail, newDist, index + 1, newIndex)
       }
     }
-    bestIndex
+    findClosestIndex(p, centers, Double.PositiveInfinity, 0, 0)
   }
 
   def sumTuple3(v1: (Double, Double, Double), v2: (Double, Double, Double)): (Double, Double, Double) = {
