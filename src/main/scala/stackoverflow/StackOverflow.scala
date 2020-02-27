@@ -117,22 +117,19 @@ class StackOverflow extends StackOverflowInterface with Serializable {
   /** Compute the vectors for the kmeans */
   def vectorPostings(scored: RDD[(Question, HighScore)]): RDD[(LangIndex, HighScore)] = {
     /** Return optional index of first language that occurs in `tags`. */
-    def firstLangInTag(tag: Option[String], ls: List[String]): Option[Int] = {
+    @tailrec
+    def firstLangInTag(tag: Option[String], ls: List[String], index: Int): Option[Int] = {
       if (tag.isEmpty) None
       else if (ls.isEmpty) None
-      else if (tag.get == ls.head) Some(0) // index: 0
+      else if (tag.get == ls.head) Some(index)
       else {
-        val tmp = firstLangInTag(tag, ls.tail)
-        tmp match {
-          case None => None
-          case Some(i) => Some(i + 1) // index i in ls.tail => index i+1
-        }
+        firstLangInTag(tag, ls.tail, index + 1)
       }
     }
 
     scored
       .filter(_._1.tags.nonEmpty)
-      .map(vs => (firstLangInTag(vs._1.tags, langs).get * langSpread, vs._2))
+      .map(vs => (firstLangInTag(vs._1.tags, langs, 0).get * langSpread, vs._2))
   }
 
   /** Sample the vectors */
